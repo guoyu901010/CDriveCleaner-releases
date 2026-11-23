@@ -54,6 +54,22 @@ jobs:
           $version = (Select-String -Path $cs -Pattern 'Version = "([0-9]+\.[0-9]+\.[0-9]+)"').Matches[0].Groups[1].Value
           Write-Host "version=$version"
 
+          # publish/ 是构建产物目录，仓库里没有启动器与说明，这里现场生成
+          $cmd = @('@echo off', 'setlocal', 'set "DOTNET_BUNDLE_EXTRACT_BASE_DIR=%~dp0.bundle"', 'start "" "%~dp0CDriveCleaner.exe" %*') -join "`r`n"
+          Set-Content -Path publish/CDriveCleaner.cmd -Value $cmd -Encoding ascii
+
+          $readme = @(
+            'C盘清理助手（CDriveCleaner）便携版',
+            '',
+            '  CDriveCleaner.exe   双击运行（单文件，自包含 .NET 8）',
+            '  CDriveCleaner.cmd   启动器：把原生库解压目录指向本目录 .bundle',
+            '',
+            '命令行：--demo / --check-update / --dup-scan <目录> / --self-test（管理员）',
+            '运行数据：%LOCALAPPDATA%\CDriveCleaner   隔离区：C:\CDriveCleaner_Quarantine',
+            '安全说明：默认不删除任何文件；清理 = 同卷原子改名到暂存箱，14 天内可原路恢复。'
+          ) -join "`r`n"
+          Set-Content -Path publish/README.txt -Value $readme -Encoding utf8
+
           $setup = "CDriveCleaner-Setup-$version.exe"
           $zip = "CDriveCleaner-v$version-win-x64.zip"
           Copy-Item publish/CDriveCleaner-Setup.exe $setup -Force
