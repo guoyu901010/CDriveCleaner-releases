@@ -63,23 +63,23 @@ jobs:
           $hSetup = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
           $hZip = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
 
-          $body = @"
-          C盘清理助手 $version — 由 GitHub Actions 从源码构建并发布
-
-          ## 下载
-          - $setup：安装程序（推荐，按用户安装，无需管理员）
-          - CDriveCleaner.exe：单文件便携版
-          - $zip：便携包（exe + 启动器 + 说明 + LICENSE）
-
-          ## 校验（SHA256）
-          - $setup: $hSetup
-          - CDriveCleaner.exe: $hExe
-          - $zip: $hZip
-
-          构建机：windows-latest · .NET 8 · 测试 122 项通过
-          安全说明：默认不删除任何文件；清理 = 同卷原子改名到暂存箱，14 天内可原路恢复。
-          "@
-          $body | Out-File -FilePath release-notes.md -Encoding utf8
+          $lines = @(
+            "C盘清理助手 $version — 由 GitHub Actions 从私有源码构建并发布",
+            "",
+            "## 下载",
+            "- $setup：安装程序（推荐，按用户安装，无需管理员）",
+            "- CDriveCleaner.exe：单文件便携版",
+            "- $zip：便携包（exe + 启动器 + 说明 + LICENSE）",
+            "",
+            "## 校验（SHA256）",
+            "- ${setup}: $hSetup",
+            "- CDriveCleaner.exe: $hExe",
+            "- ${zip}: $hZip",
+            "",
+            "构建机：windows-latest · .NET 8 · 单元测试 122 项通过",
+            "安全说明：默认不删除任何文件；清理 = 同卷原子改名到暂存箱，14 天内可原路恢复。"
+          )
+          $lines -join "`n" | Out-File -FilePath release-notes.md -Encoding utf8
 
           "version=$version" >> $env:GITHUB_OUTPUT
 
