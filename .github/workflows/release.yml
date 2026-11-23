@@ -1,0 +1,97 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: '标记为预发布（不推给自动更新）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source (private repo)
+        uses: actions/checkout@v4
+        with:
+          repository: guoyu901010/CDriveCleaner
+          token: ${{ secrets.SRC_TOKEN }}
+          fetch-depth: 1
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build
+        run: dotnet build CDriveCleaner.sln -c Release
+
+      - name: Test (122)
+        run: dotnet run --project tests/CDriveCleaner.Core.TestRunner/CDriveCleaner.Core.TestRunner.csproj -c Release
+
+      - name: Publish single-file exe
+        run: >
+          dotnet publish src/CDriveCleaner.App/CDriveCleaner.App.csproj -c Release -r win-x64
+          --self-contained true -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          -p:DebugType=None -p:DebugSymbols=false -o publish
+
+      - name: Build installer
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File tools/Build-Installer.ps1
+
+      - name: Pack assets and notes
+        id: pack
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cs = 'src/CDriveCleaner.Core/Update/UpdateChecker.cs'
+          $version = (Select-String -Path $cs -Pattern 'Version = "([0-9]+\.[0-9]+\.[0-9]+)"').Matches[0].Groups[1].Value
+          Write-Host "version=$version"
+
+          $setup = "CDriveCleaner-Setup-$version.exe"
+          $zip = "CDriveCleaner-v$version-win-x64.zip"
+          Copy-Item publish/CDriveCleaner-Setup.exe $setup -Force
+          Compress-Archive -Path publish/CDriveCleaner.exe,publish/CDriveCleaner.cmd,publish/README.txt,LICENSE -DestinationPath $zip -Force
+
+          $hExe = (Get-FileHash publish/CDriveCleaner.exe -Algorithm SHA256).Hash.ToLower()
+          $hSetup = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          $hZip = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+
+          $body = @"
+          C盘清理助手 $version — 由 GitHub Actions 从源码构建并发布
+
+          ## 下载
+          - $setup：安装程序（推荐，按用户安装，无需管理员）
+          - CDriveCleaner.exe：单文件便携版
+          - $zip：便携包（exe + 启动器 + 说明 + LICENSE）
+
+          ## 校验（SHA256）
+          - $setup: $hSetup
+          - CDriveCleaner.exe: $hExe
+          - $zip: $hZip
+
+          构建机：windows-latest · .NET 8 · 测试 122 项通过
+          安全说明：默认不删除任何文件；清理 = 同卷原子改名到暂存箱，14 天内可原路恢复。
+          "@
+          $body | Out-File -FilePath release-notes.md -Encoding utf8
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.pack.outputs.version }}
+          name: C盘清理助手 ${{ steps.pack.outputs.version }}
+          body_path: release-notes.md
+          prerelease: ${{ inputs.prerelease }}
+          make_latest: true
+          files: |
+            publish/CDriveCleaner.exe
+            CDriveCleaner-Setup-${{ steps.pack.outputs.version }}.exe
+            CDriveCleaner-v${{ steps.pack.outputs.version }}-win-x64.zip
