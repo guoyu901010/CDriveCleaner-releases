@@ -24,6 +24,7 @@ jobs:
         with:
           repository: guoyu901010/CDriveCleaner
           token: ${{ secrets.SRC_TOKEN }}
+          ref: main
           fetch-depth: 1
 
       - name: Setup .NET 8
