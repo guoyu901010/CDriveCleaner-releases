@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: dotnet build CDriveCleaner.sln -c Release
 
-      - name: Test (122)
+      - name: Test (230)
         run: dotnet run --project tests/CDriveCleaner.Core.TestRunner/CDriveCleaner.Core.TestRunner.csproj -c Release
 
       - name: Publish single-file exe
@@ -83,6 +83,17 @@ jobs:
           $hSetup = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
           $hZip = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
 
+          # Machine-readable checksum asset consumed by the updater.
+          $sums = @(
+            "$hSetup  $setup",
+            "$hExe  CDriveCleaner.exe",
+            "$hZip  $zip"
+          ) -join "`n"
+          [System.IO.File]::WriteAllText(
+            (Join-Path (Get-Location) 'SHA256SUMS.txt'),
+            $sums + "`n",
+            (New-Object System.Text.UTF8Encoding($false)))
+
           $lines = @(
             "C盘清理助手 $version — 由 GitHub Actions 从私有源码构建并发布",
             "",
@@ -96,7 +107,7 @@ jobs:
             "- CDriveCleaner.exe: $hExe",
             "- ${zip}: $hZip",
             "",
-            "构建机：windows-latest · .NET 8 · 单元测试 122 项通过",
+            "构建机：windows-latest · .NET 8 · 单元测试 230 项通过",
             "安全说明：默认不删除任何文件；清理 = 同卷原子改名到暂存箱，14 天内可原路恢复。"
           )
           $lines -join "`n" | Out-File -FilePath release-notes.md -Encoding utf8
