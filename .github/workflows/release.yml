@@ -126,3 +126,4 @@ jobs:
             publish/CDriveCleaner.exe
             CDriveCleaner-Setup-${{ steps.pack.outputs.version }}.exe
             CDriveCleaner-v${{ steps.pack.outputs.version }}-win-x64.zip
+            SHA256SUMS.txt
