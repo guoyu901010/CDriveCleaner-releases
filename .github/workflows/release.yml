@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: dotnet build CDriveCleaner.sln -c Release
 
-      - name: Test (234)
+      - name: Test (235)
         run: dotnet run --project tests/CDriveCleaner.Core.TestRunner/CDriveCleaner.Core.TestRunner.csproj -c Release
 
       - name: Publish single-file exe
@@ -107,7 +107,7 @@ jobs:
             "- CDriveCleaner.exe: $hExe",
             "- ${zip}: $hZip",
             "",
-            "构建机：windows-latest · .NET 8 · 单元测试 234 项通过",
+            "构建机：windows-latest · .NET 8 · 单元测试 235 项通过",
             "安全说明：默认不删除任何文件；清理 = 同卷原子改名到暂存箱，14 天内可原路恢复。"
           )
           $lines -join "`n" | Out-File -FilePath release-notes.md -Encoding utf8
